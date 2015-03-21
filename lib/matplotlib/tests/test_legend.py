@@ -275,7 +275,7 @@ def test_scatterplot_uni_size_warning():
         plt.legend(handler_map={
                     PathCollection: mlegend_handler.HandlerPathCollection()},
                     scatter_uni_size=30)
-        nose.tools.assert_equal(len(w), 1)
+        assert_equal(len(w), 1)
 
 
 @image_comparison(baseline_images=['scatter_uni_size_on'], extensions=['png'])
