@@ -17,6 +17,12 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.patches as mpatches
 
+import matplotlib.legend_handler as lh
+from matplotlib.collections import (LineCollection, RegularPolyCollection,
+                                    CircleCollection, PathCollection,
+                                    PolyCollection)
+import warnings
+
 
 @image_comparison(baseline_images=['legend_auto1'], remove_text=True)
 def test_legend_auto1():
@@ -239,6 +245,52 @@ def test_legend_stackplot():
     ax.set_ylim((0, 70))
     ax.legend(loc=0)
 
+@image_comparison(baseline_images=['legend_stackplot'], extensions=['png'])
+def test_legend_stackplot():
+    '''test legend for PolyCollection using stackplot'''
+    # related to #1341, #1943, and PR #3303
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    x = np.linspace(0, 10, 10)
+    y1 = 1.0 * x
+    y2 = 2.0 * x + 1
+    y3 = 3.0 * x + 2
+    ax.stackplot(x, y1, y2, y3, labels=['y1', 'y2', 'y3'])
+    ax.set_xlim((0, 10))
+    ax.set_ylim((0, 70))
+    ax.legend(loc=0)
+
+
+@image_comparison(baseline_images=['scatter_uni_size_off'], extensions=['png'])
+def test_scatterplot_uni_size_warning():
+    """
+    Expect warning to be thrown when specifying 'scatter_uni_size' and a custom
+    handler. Check that custom handler takes precedence.
+    """
+    x1, y1 = [1, 1]
+    x2, y2 = [1, 2]
+    plt.figure()
+    plt.scatter(x1, y1, marker='o', label='first', s=20, c='b')
+    plt.scatter(x2, y2, marker='o', label='second', s=50, c='r')
+
+    with warnings.catch_warnings(record=True) as w:
+        plt.legend(handler_map={PathCollection: lh.HandlerPathCollection()},
+                    scatter_uni_size=30)
+        nose.tools.assert_equal(len(w), 1)
+
+
+@image_comparison(baseline_images=['scatter_uni_size_on'], extensions=['png'])
+def test_scatterplot_uni_size_success_image():
+    """
+    Test that 'scatter_uni_size' sets legend handles for scatter plots to be
+    of the specified size.
+    """
+    x1, y1 = [1, 1]
+    x2, y2 = [1, 2]
+    fig = plt.figure()
+    plt.scatter(x1, y1, marker='o', label='first', s=20, c='b')
+    plt.scatter(x2, y2, marker='o', label='second', s=50, c='r')
+    plt.legend(scatter_uni_size=70)
 
 if __name__ == '__main__':
     import nose
