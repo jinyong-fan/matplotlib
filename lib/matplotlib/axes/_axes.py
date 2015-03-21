@@ -355,6 +355,10 @@ class Axes(_AxesBase):
             legend text, and 1.0 is at the top. To draw all markers at the
             same height, set to ``[0.5]``. Default ``[0.375, 0.5, 0.3125]``.
 
+        scatter_uni_size : None or float
+            Set the legend handles for satter plots to be of uniform size.
+            Default is None.
+
         markerscale : None or int or float
             The relative size of legend markers compared with the originally
             drawn ones. Default is ``None`` which will take the value from

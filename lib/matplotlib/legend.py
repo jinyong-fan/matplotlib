@@ -155,6 +155,8 @@ class Legend(Artist):
                                     # legend marker and label
                  scatterpoints=None,    # number of scatter points
                  scatteryoffsets=None,
+                 scatter_uni_size=None,  # set scatter plot to have uniform
+                                         # handle size
                  prop=None,          # properties for the legend texts
                  fontsize=None,        # keyword to set font size directly
 
@@ -206,6 +208,8 @@ class Legend(Artist):
         numpoints          the number of points in the legend for line
         scatterpoints      the number of points in the legend for scatter plot
         scatteryoffsets    a list of yoffsets for scatter symbols in legend
+        scatter_uni_size   Set the legend handles for satter plots to be of
+                           uniform size.
         frameon            if True, draw a frame around the legend.
                            If None, use rc
         fancybox           if True, draw a frame with a round fancybox.
@@ -278,6 +282,24 @@ class Legend(Artist):
                 value = locals_view[name]
             setattr(self, name, value)
         del locals_view
+
+        # If scatter_uni_size is set, use a custom handler with set size.
+        if scatter_uni_size:
+            # See if custom handler has been provided for PathCollection
+            if (self._custom_handler_map is not None and
+                    PathCollection in self._custom_handler_map):
+                warnings.warn("'scatter_uni_size' was set, but custom " +
+                              "handler was provided. The former will " +
+                              "be ignored.")
+            else:
+                # Initialize _custom_handler_map if None.
+                if self._custom_handler_map is None:
+                    self._custom_handler_map = {}
+                # Add entry to custom handler to custom mapping to specify
+                # uniform size.
+                self._custom_handler_map.update({
+                    PathCollection: legend_handler.HandlerPathCollection(
+                        sizes=[scatter_uni_size]*3)})
 
         handles = list(handles)
         if len(handles) < 2:
