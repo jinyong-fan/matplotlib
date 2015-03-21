@@ -17,10 +17,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.patches as mpatches
 
-import matplotlib.legend_handler as lh
-from matplotlib.collections import (LineCollection, RegularPolyCollection,
-                                    CircleCollection, PathCollection,
-                                    PolyCollection)
+import matplotlib.legend_handler as mlegend_handler
+from matplotlib.collections import PathCollection
 import warnings
 
 
@@ -274,7 +272,8 @@ def test_scatterplot_uni_size_warning():
     plt.scatter(x2, y2, marker='o', label='second', s=50, c='r')
 
     with warnings.catch_warnings(record=True) as w:
-        plt.legend(handler_map={PathCollection: lh.HandlerPathCollection()},
+        plt.legend(handler_map={
+                    PathCollection: mlegend_handler.HandlerPathCollection()},
                     scatter_uni_size=30)
         nose.tools.assert_equal(len(w), 1)
 
