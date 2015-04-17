@@ -156,6 +156,7 @@ def boilerplate_gen():
         'cla',
         'grid',
         'legend',
+        'uniformlegend',
         'table',
         'text',
         'annotate',
