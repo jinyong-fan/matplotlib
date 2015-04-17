@@ -155,8 +155,6 @@ class Legend(Artist):
                                     # legend marker and label
                  scatterpoints=None,    # number of scatter points
                  scatteryoffsets=None,
-                 scatter_uni_size=None,  # set scatter plot to have uniform
-                                         # handle size
                  prop=None,          # properties for the legend texts
                  fontsize=None,        # keyword to set font size directly
 
@@ -208,8 +206,6 @@ class Legend(Artist):
         numpoints          the number of points in the legend for line
         scatterpoints      the number of points in the legend for scatter plot
         scatteryoffsets    a list of yoffsets for scatter symbols in legend
-        scatter_uni_size   Set the legend handles for satter plots to be of
-                           uniform size.
         frameon            if True, draw a frame around the legend.
                            If None, use rc
         fancybox           if True, draw a frame with a round fancybox.
@@ -282,24 +278,6 @@ class Legend(Artist):
                 value = locals_view[name]
             setattr(self, name, value)
         del locals_view
-
-        # If scatter_uni_size is set, use a custom handler with set size.
-        if scatter_uni_size:
-            # See if custom handler has been provided for PathCollection
-            if (self._custom_handler_map is not None and
-                    PathCollection in self._custom_handler_map):
-                warnings.warn("'scatter_uni_size' was set, but custom " +
-                              "handler was provided. The former will " +
-                              "be ignored.")
-            else:
-                # Initialize _custom_handler_map if None.
-                if self._custom_handler_map is None:
-                    self._custom_handler_map = {}
-                # Add entry to custom handler to custom mapping to specify
-                # uniform size.
-                self._custom_handler_map.update({
-                    PathCollection: legend_handler.HandlerPathCollection(
-                        sizes=[scatter_uni_size]*3)})
 
         handles = list(handles)
         if len(handles) < 2:
@@ -1015,3 +993,100 @@ class Legend(Artist):
             self._draggable = None
 
         return self._draggable
+
+
+class UniformLegend(Legend):
+    def __str__(self):
+        return "uniformLegend"
+
+    def __init__(self, parent, handles, labels,uniform_size,
+                 loc=None,
+                 numpoints=None,    # the number of points in the legend line
+                 markerfirst=True,  # controls ordering (left-to-right) of
+                                    # legend marker and label
+                 scatterpoints=None,    # number of scatter points
+                 scatteryoffsets=None,
+                 prop=None,          # properties for the legend texts
+                 fontsize=None,        # keyword to set font size directly
+
+                 # spacing & pad defined as a fraction of the font-size
+                 borderpad=None,      # the whitespace inside the legend border
+                 labelspacing=None,   # the vertical space between the legend
+                                      # entries
+                 handlelength=None,   # the length of the legend handles
+                 handleheight=None,   # the height of the legend handles
+                 handletextpad=None,  # the pad between the legend handle
+                                      # and text
+                 borderaxespad=None,  # the pad between the axes and legend
+                                      # border
+                 columnspacing=None,  # spacing between columns
+
+                 ncol=1,     # number of columns
+                 mode=None,  # mode for horizontal distribution of columns.
+                             # None, "expand"
+
+                 fancybox=None,  # True use a fancy box, false use a rounded
+                                 # box, none use rc
+                 shadow=None,
+                 title=None,  # set a title for the legend
+
+                 framealpha=None,  # set frame alpha
+
+                 bbox_to_anchor=None,  # bbox that the legend will be anchored.
+                 bbox_transform=None,  # transform for the bbox
+                 frameon=None
+                 ):
+        uniformHandlerMap = {
+        StemContainer:
+            legend_handler.HandlerUniformStem(uniform_size=uniform_size),
+        ErrorbarContainer:
+            legend_handler.HandlerUniformErrorBar(uniform_size=uniform_size),
+        Line2D: legend_handler.HandlerUniformLine2D(uniform_size=uniform_size),
+        PathCollection:
+            legend_handler.HandlerPathCollection(sizes=[uniform_size]*3),
+        RegularPolyCollection:
+            legend_handler.HandlerRegularPolyCollection(sizes=[uniform_size]*3),
+        CircleCollection: 
+            legend_handler.HandlerCircleCollection(sizes=[uniform_size]*3),
+        }
+
+        Legend.__init__(self,parent,handles,labels,
+                 loc=loc,
+                 numpoints=numpoints,    # the number of points in the legend line
+                 markerscale=None,  # the relative size of legend markers
+                                    # vs. original
+                 markerfirst=markerfirst,  # controls ordering (left-to-right) of
+                                    # legend marker and label
+                 scatterpoints=scatterpoints,    # number of scatter points
+                 scatteryoffsets=scatteryoffsets,
+                 prop=prop,          # properties for the legend texts
+                 fontsize=fontsize,        # keyword to set font size directly
+
+                 # spacing & pad defined as a fraction of the font-size
+                 borderpad=borderpad,      # the whitespace inside the legend border
+                 labelspacing=labelspacing,   # the vertical space between the legend
+                                      # entries
+                 handlelength=handlelength,   # the length of the legend handles
+                 handleheight=handleheight,   # the height of the legend handles
+                 handletextpad=handletextpad,  # the pad between the legend handle
+                                      # and text
+                 borderaxespad=borderaxespad,  # the pad between the axes and legend
+                                      # border
+                 columnspacing=columnspacing,  # spacing between columns
+
+                 ncol=1,     # number of columns
+                 mode=mode,  # mode for horizontal distribution of columns.
+                             # None, "expand"
+
+                 fancybox=fancybox,  # True use a fancy box, false use a rounded
+                                 # box, none use rc
+                 shadow=shadow,
+                 title=title,  # set a title for the legend
+
+                 framealpha=framealpha,  # set frame alpha
+
+                 bbox_to_anchor=bbox_to_anchor,  # bbox that the legend will be anchored.
+                 bbox_transform=bbox_transform,  # transform for the bbox
+                 frameon=frameon,  # draw frame
+                 handler_map=uniformHandlerMap,
+               )

@@ -355,10 +355,6 @@ class Axes(_AxesBase):
             legend text, and 1.0 is at the top. To draw all markers at the
             same height, set to ``[0.5]``. Default ``[0.375, 0.5, 0.3125]``.
 
-        scatter_uni_size : None or float
-            Set the legend handles for satter plots to be of uniform size.
-            Default is None.
-
         markerscale : None or int or float
             The relative size of legend markers compared with the originally
             drawn ones. Default is ``None`` which will take the value from
@@ -457,11 +453,49 @@ class Axes(_AxesBase):
         .. plot:: mpl_examples/api/legend_demo.py
 
         """
+
+        handlers, handles, labels, uniform_size, kwargs = \
+            self._parseHandlesAndLabelsKW(*args,**kwargs)
+        # No arguments - automatically detect labels and handles.
+        if handles is None and labels is None:
+            if len(args) == 0:
+                handles, labels = self.get_legend_handles_labels(handlers)
+                if not handles:
+                    warnings.warn("No labelled objects found. "
+                                  "Use label='...' kwarg on individual plots.")
+                    return None
+
+            # One argument. User defined labels - automatic handle detection.
+            elif len(args) == 1:
+                labels, = args
+                # Get as many handles as there are labels.
+                handles = [handle for handle, label
+                           in zip(self._get_legend_handles(handlers), labels)]
+
+            # Two arguments:
+            #   * user defined handles and labels
+            elif len(args) == 2:
+                handles, labels = args
+
+            else:
+                raise TypeError('Invalid arguments to legend.')
+
+        self.legend_ = mlegend.Legend(self, handles, labels, **kwargs)
+        self.legend_._remove_method = lambda h: setattr(self, 'legend_', None)
+        return self.legend_
+
+    def _parseHandlesAndLabelsKW(self, *args,**kwargs):
+        """
+        Parse kwargs and return handlers,handles,labels,uniform_size,
+        and the rest of kwargs.
+
+        """
         handlers = kwargs.get('handler_map', {}) or {}
 
         # Support handles and labels being passed as keywords.
         handles = kwargs.pop('handles', None)
         labels = kwargs.pop('labels', None)
+        uniform_size = kwargs.pop('uniform_size',None)
 
         if (handles is not None or labels is not None) and len(args):
             warnings.warn("You have mixed positional and keyword "
@@ -487,32 +521,221 @@ class Axes(_AxesBase):
             handles = [handle for handle, label
                        in zip(self._get_legend_handles(handlers), labels)]
 
-        # No arguments - automatically detect labels and handles.
-        elif len(args) == 0:
-            handles, labels = self.get_legend_handles_labels(handlers)
-            if not handles:
-                warnings.warn("No labelled objects found. "
-                              "Use label='...' kwarg on individual plots.")
-                return None
+        return handlers,handles,labels,uniform_size,kwargs
 
-        # One argument. User defined labels - automatic handle detection.
-        elif len(args) == 1:
-            labels, = args
-            # Get as many handles as there are labels.
-            handles = [handle for handle, label
-                       in zip(self._get_legend_handles(handlers), labels)]
+    def uniformlegend(self, *args, **kwargs):
+        """
+        Places a uniform-sized legend on the axes.
 
-        # Two arguments:
-        #   * user defined handles and labels
-        elif len(args) == 2:
-            handles, labels = args
+        This command is similar to legend and the only difference is that a
+        "uniform_size" parameter must be passed in.
 
-        else:
-            raise TypeError('Invalid arguments to legend.')
+        Example:
+            uniformlegend((line1, line2, line3),
+                ('label1', 'label2', 'label3'), 5)
 
-        self.legend_ = mlegend.Legend(self, handles, labels, **kwargs)
+        Parameters
+        ----------
+        loc : int or string or pair of floats, default: 0
+            The location of the legend. Possible codes are:
+
+                ===============   =============
+                Location String   Location Code
+                ===============   =============
+                'best'            0
+                'upper right'     1
+                'upper left'      2
+                'lower left'      3
+                'lower right'     4
+                'right'           5
+                'center left'     6
+                'center right'    7
+                'lower center'    8
+                'upper center'    9
+                'center'          10
+                ===============   =============
+
+
+            Alternatively can be a 2-tuple giving ``x, y`` of the lower-left
+            corner of the legend in axes coordinates (in which case
+            ``bbox_to_anchor`` will be ignored).
+
+        bbox_to_anchor : :class:`matplotlib.transforms.BboxBase` instance \
+                         or tuple of floats
+            Specify any arbitrary location for the legend in `bbox_transform`
+            coordinates (default Axes coordinates).
+
+            For example, to put the legend's upper right hand corner in the
+            center of the axes the following keywords can be used::
+
+               loc='upper right', bbox_to_anchor=(0.5, 0.5)
+
+        ncol : integer
+            The number of columns that the legend has. Default is 1.
+
+        prop : None or :class:`matplotlib.font_manager.FontProperties` or dict
+            The font properties of the legend. If None (default), the current
+            :data:`matplotlib.rcParams` will be used.
+
+        fontsize : int or float or {'xx-small', 'x-small', 'small', 'medium',\
+                   'large', 'x-large', 'xx-large'}
+            Controls the font size of the legend. If the value is numeric the
+            size will be the absolute font size in points. String values are
+            relative to the current default font size. This argument is only
+            used if `prop` is not specified.
+
+        numpoints : None or int
+            The number of marker points in the legend when creating a legend
+            entry for a line/:class:`matplotlib.lines.Line2D`.
+            Default is ``None`` which will take the value from the
+            ``legend.numpoints`` :data:`rcParam<matplotlib.rcParams>`.
+
+        scatterpoints : None or int
+            The number of marker points in the legend when creating a legend
+            entry for a scatter plot/
+            :class:`matplotlib.collections.PathCollection`.
+            Default is ``None`` which will take the value from the
+            ``legend.scatterpoints`` :data:`rcParam<matplotlib.rcParams>`.
+
+        scatteryoffsets : iterable of floats
+            The vertical offset (relative to the font size) for the markers
+            created for a scatter plot legend entry. 0.0 is at the base the
+            legend text, and 1.0 is at the top. To draw all markers at the
+            same height, set to ``[0.5]``. Default ``[0.375, 0.5, 0.3125]``.
+
+        markerscale : None or int or float
+            The relative size of legend markers compared with the originally
+            drawn ones. Default is ``None`` which will take the value from
+            the ``legend.markerscale`` :data:`rcParam <matplotlib.rcParams>`.
+
+        *markerfirst*: [ *True* | *False* ]
+            if *True*, legend marker is placed to the left of the legend label
+            if *False*, legend marker is placed to the right of the legend
+            label
+
+        frameon : None or bool
+            Control whether a frame should be drawn around the legend.
+            Default is ``None`` which will take the value from the
+            ``legend.frameon`` :data:`rcParam<matplotlib.rcParams>`.
+
+        fancybox : None or bool
+            Control whether round edges should be enabled around
+            the :class:`~matplotlib.patches.FancyBboxPatch` which
+            makes up the legend's background.
+            Default is ``None`` which will take the value from the
+            ``legend.fancybox`` :data:`rcParam<matplotlib.rcParams>`.
+
+        shadow : None or bool
+            Control whether to draw a shadow behind the legend.
+            Default is ``None`` which will take the value from the
+            ``legend.shadow`` :data:`rcParam<matplotlib.rcParams>`.
+
+        framealpha : None or float
+            Control the alpha transparency of the legend's frame.
+            Default is ``None`` which will take the value from the
+            ``legend.framealpha`` :data:`rcParam<matplotlib.rcParams>`.
+
+        mode : {"expand", None}
+            If `mode` is set to ``"expand"`` the legend will be horizontally
+            expanded to fill the axes area (or `bbox_to_anchor` if defines
+            the legend's size).
+
+        bbox_transform : None or :class:`matplotlib.transforms.Transform`
+            The transform for the bounding box (`bbox_to_anchor`). For a value
+            of ``None`` (default) the Axes'
+            :data:`~matplotlib.axes.Axes.transAxes` transform will be used.
+
+        title : str or None
+            The legend's title. Default is no title (``None``).
+
+        borderpad : float or None
+            The fractional whitespace inside the legend border.
+            Measured in font-size units.
+            Default is ``None`` which will take the value from the
+            ``legend.borderpad`` :data:`rcParam<matplotlib.rcParams>`.
+
+        labelspacing : float or None
+            The vertical space between the legend entries.
+            Measured in font-size units.
+            Default is ``None`` which will take the value from the
+            ``legend.labelspacing`` :data:`rcParam<matplotlib.rcParams>`.
+
+        handlelength : float or None
+            The length of the legend handles.
+            Measured in font-size units.
+            Default is ``None`` which will take the value from the
+            ``legend.handlelength`` :data:`rcParam<matplotlib.rcParams>`.
+
+        handletextpad : float or None
+            The pad between the legend handle and text.
+            Measured in font-size units.
+            Default is ``None`` which will take the value from the
+            ``legend.handletextpad`` :data:`rcParam<matplotlib.rcParams>`.
+
+        borderaxespad : float or None
+            The pad between the axes and legend border.
+            Measured in font-size units.
+            Default is ``None`` which will take the value from the
+            ``legend.borderaxespad`` :data:`rcParam<matplotlib.rcParams>`.
+
+        columnspacing : float or None
+            The spacing between columns.
+            Measured in font-size units.
+            Default is ``None`` which will take the value from the
+            ``legend.columnspacing`` :data:`rcParam<matplotlib.rcParams>`.
+
+        handler_map : dict or None
+            The custom dictionary mapping instances or types to a legend
+            handler. This `handler_map` updates the default handler map
+            found at :func:`matplotlib.legend.Legend.get_legend_handler_map`.
+
+        Notes
+        -----
+
+        Not all kinds of artist are supported by the legend command.
+        See :ref:`plotting-guide-legend` for details.
+
+        """
+        handlers, handles, labels, uniform_size, kwargs = \
+            self._parseHandlesAndLabelsKW(*args,**kwargs)
+        # One or less arguments - automatically detect labels and handles.
+        if handles is None and labels is None:
+            if len(args) < 2:
+                if uniform_size is None:
+                    if len(args) == 0:
+                        warnings.warn("uniform_size. "
+                                      "Use uniform_size='...' kwarg or legend.")
+                        return None
+
+                    else:
+                        uniform_size, = args
+                handles, labels = self.get_legend_handles_labels(handlers)
+                if not handles:
+                    warnings.warn("No labelled objects found. "
+                                  "Use label='...' kwarg on individual plots.")
+                    return None
+
+
+            # Two arguments. User defined labels - automatic handle detection.
+            elif len(args) == 2:
+                labels,uniform_size = args
+                # Get as many handles as there are labels.
+                handles = [handle for handle, label
+                           in zip(self._get_legend_handles(handlers), labels)]
+
+            # Three arguments:
+            #   * user defined handles and labels
+            elif len(args) == 3:
+                handles, labels, uniform_size = args
+
+            else:
+                raise TypeError('Invalid arguments to legend.')
+
+        self.legend_ = mlegend.UniformLegend(self, handles, labels,
+                                             uniform_size, **kwargs)
         self.legend_._remove_method = lambda h: setattr(self, 'legend_', None)
         return self.legend_
+
 
     def text(self, x, y, s, fontdict=None,
              withdash=False, **kwargs):
@@ -1823,13 +2046,11 @@ class Axes(_AxesBase):
         height : sequence of scalars
             the heights of the bars
 
-        width : scalar or array-like, optional
+        width : scalar or array-like, optional, default: 0.8
             the width(s) of the bars
-            default: 0.8
 
-        bottom : scalar or array-like, optional
+        bottom : scalar or array-like, optional, default: None
             the y coordinate(s) of the bars
-            default: None
 
         color : scalar or array-like, optional
             the colors of the bar faces
@@ -1837,49 +2058,40 @@ class Axes(_AxesBase):
         edgecolor : scalar or array-like, optional
             the colors of the bar edges
 
-        linewidth : scalar or array-like, optional
+        linewidth : scalar or array-like, optional, default: None
             width of bar edge(s). If None, use default
             linewidth; If 0, don't draw edges.
-            default: None
 
-        xerr : scalar or array-like, optional
+        xerr : scalar or array-like, optional, default: None
             if not None, will be used to generate errorbar(s) on the bar chart
-            default: None
 
-        yerr : scalar or array-like, optional
+        yerr : scalar or array-like, optional, default: None
             if not None, will be used to generate errorbar(s) on the bar chart
-            default: None
 
-        ecolor : scalar or array-like, optional
+        ecolor : scalar or array-like, optional, default: None
             specifies the color of errorbar(s)
-            default: None
 
-        capsize : integer, optional
+        capsize : integer, optional, default: 3
            determines the length in points of the error bar caps
-           default: 3
 
-        error_kw : dict, optional
+        error_kw :
             dictionary of kwargs to be passed to errorbar method. *ecolor* and
             *capsize* may be specified here rather than as independent kwargs.
 
-        align : {'edge',  'center'}, optional
-            If 'edge', aligns bars by their left edges (for vertical bars) and
-            by their bottom edges (for horizontal bars). If 'center', interpret
+        align : ['edge' | 'center'], optional, default: 'edge'
+            If `edge`, aligns bars by their left edges (for vertical bars) and
+            by their bottom edges (for horizontal bars). If `center`, interpret
             the `left` argument as the coordinates of the centers of the bars.
-            To align on the align bars on the right edge pass a negative
-            `width`.
 
-        orientation : {'vertical',  'horizontal'}, optional
+        orientation : 'vertical' | 'horizontal', optional, default: 'vertical'
             The orientation of the bars.
 
-        log : boolean, optional
-            If true, sets the axis to be log scale.
-            default: False
+        log : boolean, optional, default: False
+            If true, sets the axis to be log scale
 
         Returns
         -------
-        bars : matplotlib.container.BarContainer
-            Container with all of the bars + errorbars
+        `matplotlib.patches.Rectangle` instances.
 
         Notes
         -----
@@ -1999,19 +2211,19 @@ class Axes(_AxesBase):
             if len(edgecolor) < nbars:
                 edgecolor *= nbars
 
-        # input validation
-        if len(left) != nbars:
-            raise ValueError("incompatible sizes: argument 'left' must "
-                             "be length %d or scalar" % nbars)
-        if len(height) != nbars:
-            raise ValueError("incompatible sizes: argument 'height' "
-                              "must be length %d or scalar" % nbars)
-        if len(width) != nbars:
-            raise ValueError("incompatible sizes: argument 'width' "
-                             "must be length %d or scalar" % nbars)
-        if len(bottom) != nbars:
-            raise ValueError("incompatible sizes: argument 'bottom' "
-                             "must be length %d or scalar" % nbars)
+        # FIXME: convert the following to proper input validation
+        # raising ValueError; don't use assert for this.
+        assert len(left) == nbars, ("incompatible sizes: argument 'left' must "
+                                    "be length %d or scalar" % nbars)
+        assert len(height) == nbars, ("incompatible sizes: argument 'height' "
+                                      "must be length %d or scalar" %
+                                      nbars)
+        assert len(width) == nbars, ("incompatible sizes: argument 'width' "
+                                     "must be length %d or scalar" %
+                                     nbars)
+        assert len(bottom) == nbars, ("incompatible sizes: argument 'bottom' "
+                                      "must be length %d or scalar" %
+                                      nbars)
 
         patches = []
 
@@ -2449,10 +2661,8 @@ class Axes(_AxesBase):
             labels = [''] * len(x)
         if explode is None:
             explode = [0] * len(x)
-        if len(x) != len(labels):
-            raise ValueError("'label' must be of length 'x'")
-        if len(x) != len(explode):
-            raise ValueError("'explode' must be of length 'x'")
+        assert(len(x) == len(labels))
+        assert(len(x) == len(explode))
         if colors is None:
             colors = ('b', 'g', 'r', 'c', 'm', 'y', 'k', 'w')
 
@@ -3709,9 +3919,8 @@ class Axes(_AxesBase):
         collection.update(kwargs)
 
         if colors is None:
-            if norm is not None and not isinstance(norm, mcolors.Normalize):
-                msg = "'norm' must be an instance of 'mcolors.Normalize'"
-                raise ValueError(msg)
+            if norm is not None:
+                assert(isinstance(norm, mcolors.Normalize))
             collection.set_array(np.asarray(c))
             collection.set_cmap(cmap)
             collection.set_norm(norm)
@@ -3901,9 +4110,10 @@ class Axes(_AxesBase):
         if extent is not None:
             xmin, xmax, ymin, ymax = extent
         else:
-            xmin, xmax = (np.amin(x), np.amax(x)) if len(x) else (0, 1)
-            ymin, ymax = (np.amin(y), np.amax(y)) if len(y) else (0, 1)
-
+            xmin = np.amin(x)
+            xmax = np.amax(x)
+            ymin = np.amin(y)
+            ymax = np.amax(y)
             # to avoid issues with singular data, expand the min/max pairs
             xmin, xmax = mtrans.nonsingular(xmin, xmax, expander=0.1)
             ymin, ymax = mtrans.nonsingular(ymin, ymax, expander=0.1)
@@ -4080,9 +4290,8 @@ class Axes(_AxesBase):
             bins = np.sort(bins)
             accum = bins.searchsorted(accum)
 
-        if norm is not None and not isinstance(norm, mcolors.Normalize):
-            msg = "'norm' must be an instance of 'mcolors.Normalize'"
-            raise ValueError(msg)
+        if norm is not None:
+            assert(isinstance(norm, mcolors.Normalize))
         collection.set_array(accum)
         collection.set_cmap(cmap)
         collection.set_norm(norm)
@@ -4697,9 +4906,8 @@ class Axes(_AxesBase):
         if not self._hold:
             self.cla()
 
-        if norm is not None and not isinstance(norm, mcolors.Normalize):
-            msg = "'norm' must be an instance of 'mcolors.Normalize'"
-            raise ValueError(msg)
+        if norm is not None:
+            assert(isinstance(norm, mcolors.Normalize))
         if aspect is None:
             aspect = rcParams['image.aspect']
         self.set_aspect(aspect)
@@ -5025,9 +5233,8 @@ class Axes(_AxesBase):
 
         collection.set_alpha(alpha)
         collection.set_array(C)
-        if norm is not None and not isinstance(norm, mcolors.Normalize):
-            msg = "'norm' must be an instance of 'mcolors.Normalize'"
-            raise ValueError(msg)
+        if norm is not None:
+            assert(isinstance(norm, mcolors.Normalize))
         collection.set_cmap(cmap)
         collection.set_norm(norm)
         collection.set_clim(vmin, vmax)
@@ -5175,9 +5382,8 @@ class Axes(_AxesBase):
             antialiased=antialiased, shading=shading, **kwargs)
         collection.set_alpha(alpha)
         collection.set_array(C)
-        if norm is not None and not isinstance(norm, mcolors.Normalize):
-            msg = "'norm' must be an instance of 'mcolors.Normalize'"
-            raise ValueError(msg)
+        if norm is not None:
+            assert(isinstance(norm, mcolors.Normalize))
         collection.set_cmap(cmap)
         collection.set_norm(norm)
         collection.set_clim(vmin, vmax)
@@ -5301,9 +5507,8 @@ class Axes(_AxesBase):
         cmap = kwargs.pop('cmap', None)
         vmin = kwargs.pop('vmin', None)
         vmax = kwargs.pop('vmax', None)
-        if norm is not None and not isinstance(norm, mcolors.Normalize):
-            msg = "'norm' must be an instance of 'mcolors.Normalize'"
-            raise ValueError(msg)
+        if norm is not None:
+            assert(isinstance(norm, mcolors.Normalize))
 
         C = args[-1]
         nr, nc = C.shape
@@ -5666,14 +5871,12 @@ class Axes(_AxesBase):
 
         # basic input validation
         flat = np.ravel(x)
-
-        input_empty = len(flat) == 0
+        if len(flat) == 0:
+            raise ValueError("x must have at least one data point")
 
         # Massage 'x' for processing.
         # NOTE: Be sure any changes here is also done below to 'weights'
-        if input_empty:
-            x = np.array([[]])
-        elif isinstance(x, np.ndarray) or not iterable(x[0]):
+        if isinstance(x, np.ndarray) or not iterable(x[0]):
             # TODO: support masked arrays;
             x = np.asarray(x)
             if x.ndim == 2:
@@ -5728,7 +5931,7 @@ class Axes(_AxesBase):
         # If bins are not specified either explicitly or via range,
         # we need to figure out the range required for all datasets,
         # and supply that to np.histogram.
-        if not binsgiven and not input_empty:
+        if not binsgiven:
             xmin = np.inf
             xmax = -np.inf
             for xi in x:
@@ -5933,18 +6136,17 @@ class Axes(_AxesBase):
                     if np.sum(m) > 0:  # make sure there are counts
                         xmin = np.amin(m[m != 0])
                         # filter out the 0 height bins
-                xmin = max(xmin*0.9, minimum) if not input_empty else minimum
+                xmin = max(xmin*0.9, minimum)
                 xmin = min(xmin0, xmin)
                 self.dataLim.intervalx = (xmin, xmax)
             elif orientation == 'vertical':
                 ymin0 = max(_saved_bounds[1]*0.9, minimum)
                 ymax = self.dataLim.intervaly[1]
-
                 for m in n:
                     if np.sum(m) > 0:  # make sure there are counts
                         ymin = np.amin(m[m != 0])
                         # filter out the 0 height bins
-                ymin = max(ymin*0.9, minimum) if not input_empty else minimum
+                ymin = max(ymin*0.9, minimum)
                 ymin = min(ymin0, ymin)
                 self.dataLim.intervaly = (ymin, ymax)
 
